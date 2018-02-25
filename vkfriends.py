@@ -1,10 +1,10 @@
 import vk
 import random
+import argparse
 import matplotlib.pylab as plt
 import networkx as nx
 from multiprocessing import Pool
 from networkx.drawing.nx_agraph import graphviz_layout
-from tqdm import tqdm
 
 
 def friends_graph(ID):
@@ -59,24 +59,26 @@ def plot_graph(G, name):
         G,
         pos=graphviz_layout(G),
         edge_color=edges_colors, 
-        node_size=20, 
+        node_size=50, 
         font_size=8,
         node_color='green'
     )
     plt.title('Relationship of friends', size=40)
+    plt.axis('off')
     plt.savefig('{}.png'.format(name.encode('utf-8').replace('\n', '')))
     return True
 
 if __name__ == '__main__':
 
-    IDs = [
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--ids', nargs='+', type=int)
 
-    ]
+    IDs = parser.parse_args()._get_kwargs()[0][1]
 
     def plot(ID):
         G, name = friends_graph(ID)
         plot_graph(G, name)
-        print '{} builded'.format(ID)
+        print '{} complete'.format(ID)
 
     pool = Pool(processes=len(IDs))
     pool.map(plot, IDs)
