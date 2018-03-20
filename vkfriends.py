@@ -6,31 +6,29 @@ import networkx as nx
 from multiprocessing import Pool
 from networkx.drawing.nx_agraph import graphviz_layout
 
+VK_API_VERSION = 5.73
 
-def friends_graph(ID):
+def friends_graph(ID, vk_api):
     
-    session = vk.Session()
-    vk_api = vk.API(session, timeout=120)
-
     def get_name(idx):
-        d = vk_api.users.get(user_id=idx)
+        d = vk_api.users.get(user_id=idx, v=VK_API_VERSION)
         f_name = d[0]['first_name']
         l_name = d[0]['last_name']
         return '\n'.join([f_name, l_name])
 
     def is_deleted(idx):
-        d = vk_api.users.get(user_id=idx)
+        d = vk_api.users.get(user_id=idx, v=VK_API_VERSION)
         if 'deactivated' in d[0]:
             return True
         else:
             return False
 
-    friends = vk_api.friends.get(user_id=ID)
+    friends = vk_api.friends.get(user_id=ID, v=VK_API_VERSION)['items']
 
     graph = {}
     for user in friends:
         if not is_deleted(user):
-            user_friends = vk_api.friends.get(user_id=user)
+            user_friends = vk_api.friends.get(user_id=user, v=VK_API_VERSION)
             user_friends_common = set.intersection(
                 set(friends),
                 set(user_friends)
@@ -75,10 +73,16 @@ if __name__ == '__main__':
 
     IDs = parser.parse_args()._get_kwargs()[0][1]
 
+    session = vk.Session()
+    vk_api = vk.API(session, timeout=120)
+
     def plot(ID):
-        G, name = friends_graph(ID)
-        plot_graph(G, name)
-        print '{} complete'.format(ID)
+        try:
+            G, name = friends_graph(ID, vk_api)
+            plot_graph(G, name)
+            print '{} complete'.format(ID)
+        except:
+            print 'troubles with {}'.format(ID)
 
     pool = Pool(processes=len(IDs))
     pool.map(plot, IDs)
