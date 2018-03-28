@@ -8,6 +8,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 
 VK_API_VERSION = 5.73
 
+
 def friends_graph(ID, vk_api):
     
     def get_name(idx):
@@ -28,7 +29,7 @@ def friends_graph(ID, vk_api):
     graph = {}
     for user in friends:
         if not is_deleted(user):
-            user_friends = vk_api.friends.get(user_id=user, v=VK_API_VERSION)
+            user_friends = vk_api.friends.get(user_id=user, v=VK_API_VERSION)['items']
             user_friends_common = set.intersection(
                 set(friends),
                 set(user_friends)
