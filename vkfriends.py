@@ -1,7 +1,7 @@
 import vk
 import random
 import argparse
-import matplotlib.pylab as plt
+import pylab as plt
 from tqdm import tqdm
 plt.style.use('grayscale')
 import networkx as nx
