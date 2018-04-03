@@ -2,6 +2,7 @@ import vk
 import random
 import argparse
 import matplotlib.pylab as plt
+from tqdm import tqdm
 plt.style.use('grayscale')
 import networkx as nx
 from multiprocessing import Pool
@@ -28,17 +29,25 @@ def get_name(idx):
     l_name = d[0]['last_name']
     return '\n'.join([f_name, l_name])
 
+
 def friends_graph(ID, vk_api):
     
     friends = vk_api.friends.get(user_id=ID, v=VK_API_VERSION)['items']
-
     graph = {}
 
-    pool = Pool(processes=12)
-    all_friends_part = pool.map(get_friends, friends)
-    pool.close()
+    pbar = tqdm(total=len(friends), desc='get common friends')
 
-    for friend, friends_part in zip(friends, all_friends_part):
+    def update(*a):
+        pbar.update(len(friends))
+
+    pool = Pool(processes=12)
+    res = pool.map_async(get_friends, friends, callback=update)
+    pool.close()
+    pool.join()
+    pbar.close()
+    all_friends_part = res.get(timeout=10)
+
+    for friend, friends_part in tqdm(zip(friends, all_friends_part), desc='building graph'):
         user_friends_common = set.intersection(
             set(friends),
             set(friends_part)
@@ -47,7 +56,16 @@ def friends_graph(ID, vk_api):
 
     G = nx.Graph(graph)
     nodes = G.nodes()
-    mapping = {node: get_name(node) for node in nodes}
+
+    pbar = tqdm(total=len(friends), desc='load names')
+    pool = Pool(processes=12)
+    res = pool.map_async(get_name, nodes, callback=update)
+    pool.close()
+    pool.join()
+    pbar.close()
+    names = res.get(timeout=10)
+    mapping = {node: name for node, name in zip(nodes, names)}
+
     H = nx.relabel_nodes(G, mapping)
 
     return H, get_name(ID)
@@ -55,14 +73,14 @@ def friends_graph(ID, vk_api):
 
 def plot_graph(G, name):
     
-    #plt.figure(figsize=(35,29))
+    plt.figure(figsize=(40,30))
     colors = [
         'red',
         'yellow',
         'blue',
         'green'
     ]
-    edges_colors = [random.choice(colors) for e in G.edges()]
+    edges_colors = [random.choice(colors) for _ in G.edges()]
     nx.draw_networkx(
         G,
         pos=graphviz_layout(G),
@@ -74,7 +92,6 @@ def plot_graph(G, name):
     plt.title('Relationship of friends', size=40)
     plt.axis('off')
     plt.show()
-    #plt.savefig('{}.png'.format(name.encode('utf-8').replace('\n', '')))
     return True
 
 if __name__ == '__main__':
