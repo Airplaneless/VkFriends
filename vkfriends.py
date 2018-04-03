@@ -89,7 +89,7 @@ def friends_graph(ID, vk_api):
     return H, photos, get_name_n_photo(ID)[0]
 
 
-def plot_graph(G, photos, name):
+def plot_graph(G, photos, user_name):
     
     colors = [
         'red',
@@ -114,7 +114,7 @@ def plot_graph(G, photos, name):
 
     edge_names = [' ' for _ in G.edges().keys()]
     
-    plot = figure(plot_width=1000, plot_height=600, title="Relationship of {}".format(name))
+    plot = figure(plot_width=1000, plot_height=600, title="Relationship of {}".format(user_name))
     source_nodes = ColumnDataSource(data=dict(x=x, y=y, name=names, img=img))
     source_edges = ColumnDataSource(data=dict(x=x_edge, y=y_edge))
     labels = LabelSet(x='x', y='y', text='name', source=source_nodes)
