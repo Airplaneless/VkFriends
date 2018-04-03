@@ -2,6 +2,7 @@ import vk
 import random
 import argparse
 import matplotlib.pylab as plt
+plt.style.use('grayscale')
 import networkx as nx
 from multiprocessing import Pool
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -9,32 +10,40 @@ from networkx.drawing.nx_agraph import graphviz_layout
 VK_API_VERSION = 5.73
 
 
+def get_friends(user):
+    session = vk.Session()
+    vk_api = vk.API(session, timeout=120)
+    deleted = vk_api.users.get(user_id=user, v=VK_API_VERSION)
+    if not 'deactivated' in deleted[0]:
+        user_friends = vk_api.friends.get(user_id=user, v=VK_API_VERSION)['items']
+        return user_friends
+    else:
+        return []
+
+def get_name(idx):
+    session = vk.Session()
+    vk_api = vk.API(session, timeout=120)
+    d = vk_api.users.get(user_id=idx, v=VK_API_VERSION)
+    f_name = d[0]['first_name']
+    l_name = d[0]['last_name']
+    return '\n'.join([f_name, l_name])
+
 def friends_graph(ID, vk_api):
     
-    def get_name(idx):
-        d = vk_api.users.get(user_id=idx, v=VK_API_VERSION)
-        f_name = d[0]['first_name']
-        l_name = d[0]['last_name']
-        return '\n'.join([f_name, l_name])
-
-    def is_deleted(idx):
-        d = vk_api.users.get(user_id=idx, v=VK_API_VERSION)
-        if 'deactivated' in d[0]:
-            return True
-        else:
-            return False
-
     friends = vk_api.friends.get(user_id=ID, v=VK_API_VERSION)['items']
 
     graph = {}
-    for user in friends:
-        if not is_deleted(user):
-            user_friends = vk_api.friends.get(user_id=user, v=VK_API_VERSION)['items']
-            user_friends_common = set.intersection(
-                set(friends),
-                set(user_friends)
-            )
-            graph[user] = list(user_friends_common)
+
+    pool = Pool(processes=12)
+    all_friends_part = pool.map(get_friends, friends)
+    pool.close()
+
+    for friend, friends_part in zip(friends, all_friends_part):
+        user_friends_common = set.intersection(
+            set(friends),
+            set(friends_part)
+        )
+        graph[friend] = list(user_friends_common)
 
     G = nx.Graph(graph)
     nodes = G.nodes()
@@ -46,7 +55,7 @@ def friends_graph(ID, vk_api):
 
 def plot_graph(G, name):
     
-    plt.figure(figsize=(35,29))
+    #plt.figure(figsize=(35,29))
     colors = [
         'red',
         'yellow',
@@ -64,27 +73,19 @@ def plot_graph(G, name):
     )
     plt.title('Relationship of friends', size=40)
     plt.axis('off')
-    plt.savefig('{}.png'.format(name.encode('utf-8').replace('\n', '')))
+    plt.show()
+    #plt.savefig('{}.png'.format(name.encode('utf-8').replace('\n', '')))
     return True
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ids', nargs='+', type=int)
-
-    IDs = parser.parse_args()._get_kwargs()[0][1]
+    parser.add_argument('-id', type=int, help='ID of vk.com user')
+    
+    ID = parser.parse_args()._get_kwargs()[0][1]
 
     session = vk.Session()
     vk_api = vk.API(session, timeout=120)
 
-    def plot(ID):
-        try:
-            G, name = friends_graph(ID, vk_api)
-            plot_graph(G, name)
-            print '{} complete'.format(ID)
-        except:
-            print 'troubles with {}'.format(ID)
-
-    pool = Pool(processes=len(IDs))
-    pool.map(plot, IDs)
-    pool.close()
+    G, name = friends_graph(ID, vk_api)
+    plot_graph(G, name)
