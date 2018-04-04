@@ -110,7 +110,7 @@ def plot_graph(G, photos, friends, user_name):
     source_edges = ColumnDataSource(data=dict(xs=x_edge, ys=y_edge, name=edges_name))
     labels = LabelSet(x='x', y='y', text='name', source=source_nodes)
 
-    hover = HoverTool( names=['nodes'], point_policy="snap_to_data", tooltips="""
+    hover = HoverTool( names=['nodes'], attachment="right", point_policy="snap_to_data", tooltips="""
         <div>
             <div>
                 <img
@@ -127,7 +127,7 @@ def plot_graph(G, photos, friends, user_name):
         """
     )
 
-    hover1 = HoverTool(names=["edges"], tooltips=[('Relation', '@name')], line_policy='interp')
+    hover1 = HoverTool(names=["edges"], attachment="left", tooltips=[('Relation', '@name')], line_policy='interp')
 
     plot.add_tools(hover, hover1)
     plot.multi_line('xs', 'ys', name="edges", line_alpha=0.8, line_color="#CCCCCC", line_width=1, source=source_edges)
