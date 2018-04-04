@@ -91,13 +91,6 @@ def friends_graph(ID, vk_api):
 
 def plot_graph(G, photos, friends, user_name):
     
-    colors = [
-        'red',
-        'yellow',
-        'blue',
-        'green'
-    ]
-    
     pos = graphviz_layout(G)
     names = pos.keys()
     x,y=zip(*pos.values())
@@ -111,14 +104,13 @@ def plot_graph(G, photos, friends, user_name):
         y_edge.append([pos[edge[0]][1], pos[edge[1]][1]])
     img = [photos[name] for name in names]
     frnds = [friends[name] for name in names]
-
     
     plot = figure(plot_width=1000, plot_height=600, title="Relationship of {}".format(user_name))
     source_nodes = ColumnDataSource(data=dict(x=x, y=y, name=names, img=img, friend=frnds))
     source_edges = ColumnDataSource(data=dict(xs=x_edge, ys=y_edge, name=edges_name))
     labels = LabelSet(x='x', y='y', text='name', source=source_nodes)
 
-    hover = HoverTool( names=['nodes'], tooltips="""
+    hover = HoverTool( names=['nodes'], point_policy="snap_to_data", tooltips="""
         <div>
             <div>
                 <img
@@ -135,11 +127,11 @@ def plot_graph(G, photos, friends, user_name):
         """
     )
 
-    hover1 = HoverTool(names=["edges"], tooltips=[('Relation', '@name')])
+    hover1 = HoverTool(names=["edges"], tooltips=[('Relation', '@name')], line_policy='interp')
 
     plot.add_tools(hover, hover1)
     plot.multi_line('xs', 'ys', name="edges", line_alpha=0.8, line_color="#CCCCCC", line_width=1, source=source_edges)
-    plot.circle('x', 'y', size=15, fill_color="#28B463", name="nodes",  source=source_nodes)
+    plot.circle('x', 'y', size=15, fill_color="#1E8449", name="nodes",  source=source_nodes)
     plot.renderers.append(labels)
 
     output_file("networkx_graph.html")

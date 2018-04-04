@@ -1,7 +1,7 @@
 # VkFriends
 Визуализация дружеских связей между друзьями в vk.com
 
-    python vkfriends -id 1
+    python vkfriends -id 5592362
 
     Зависимости:
     python: vk, networkx, tqdm, pylab, bokeh
