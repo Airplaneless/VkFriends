@@ -13,7 +13,6 @@ from bokeh.plotting import figure
 from bokeh.models import Plot, Range1d, MultiLine, Circle, HoverTool, TapTool
 from bokeh.models import ColumnDataSource, BoxSelectTool, PanTool, WheelZoomTool, LabelSet
 from bokeh.models.graphs import from_networkx, NodesAndLinkedEdges, EdgesAndLinkedNodes
-from bokeh.palettes import Spectral4
 from networkx.readwrite import json_graph
 from multiprocessing import Pool
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -81,15 +80,16 @@ def friends_graph(ID, vk_api):
     names = [a[0] for a in names_n_photos]
     photos = {name:a[1] for name, a in zip(names, names_n_photos)}
     mapping = {node: name for node, name in zip(nodes, names)}
+    ids = {name: node for node, name in zip(nodes, names)}
     
     H = nx.relabel_nodes(G, mapping)
 
 
 
-    return H, photos, get_name_n_photo(ID)[0]
+    return H, photos, ids, get_name_n_photo(ID)[0]
 
 
-def plot_graph(G, photos, user_name):
+def plot_graph(G, photos, friends, user_name):
     
     colors = [
         'red',
@@ -97,47 +97,49 @@ def plot_graph(G, photos, user_name):
         'blue',
         'green'
     ]
-    edges_colors = [random.choice(colors) for _ in G.edges()]
-
+    
     pos = graphviz_layout(G)
     names = pos.keys()
     x,y=zip(*pos.values())
 
     x_edge = list()
     y_edge = list()
+    edges_name = list()
     for edge in G.edges().keys():
-        x_edge.append(pos[edge[0]][0])
-        x_edge.append(pos[edge[1]][0])
-        y_edge.append(pos[edge[0]][1])
-        y_edge.append(pos[edge[1]][1])
+        edges_name.append(edge[0].replace('\n', ' ') + '<--->' + edge[1].replace('\n', ' '))
+        x_edge.append([pos[edge[0]][0], pos[edge[1]][0]])
+        y_edge.append([pos[edge[0]][1], pos[edge[1]][1]])
     img = [photos[name] for name in names]
+    frnds = [friends[name] for name in names]
 
-    edge_names = [' ' for _ in G.edges().keys()]
     
     plot = figure(plot_width=1000, plot_height=600, title="Relationship of {}".format(user_name))
-    source_nodes = ColumnDataSource(data=dict(x=x, y=y, name=names, img=img))
-    source_edges = ColumnDataSource(data=dict(x=x_edge, y=y_edge))
+    source_nodes = ColumnDataSource(data=dict(x=x, y=y, name=names, img=img, friend=frnds))
+    source_edges = ColumnDataSource(data=dict(xs=x_edge, ys=y_edge, name=edges_name))
     labels = LabelSet(x='x', y='y', text='name', source=source_nodes)
 
     hover = HoverTool( names=['nodes'], tooltips="""
         <div>
             <div>
                 <img
-                    src="@img" height="42" alt="@img" width="42"
+                    src="@img" height="50" alt="@img" width="50"
                     style="float: left; margin: 0px 15px 15px 0px;"
                     border="2"
                 ></img>
             </div>
             <div>
-                <span style="font-size: 10px; color: #696;">@name</span>
+                <span style="font-size: 12;">@name</span>
+                <span style="font-size: 12;">id @friend</span>
             </div>
         </div>
         """
     )
 
-    plot.add_tools(hover, TapTool(), BoxSelectTool())
-    plot.line('x', 'y', line_alpha=0.8, line_color="#CCCCCC", line_width=1, source=source_edges)
-    plot.circle('x', 'y', size=15, fill_color=Spectral4[2], name="nodes",  source=source_nodes)
+    hover1 = HoverTool(names=["edges"], tooltips=[('Relation', '@name')])
+
+    plot.add_tools(hover, hover1)
+    plot.multi_line('xs', 'ys', name="edges", line_alpha=0.8, line_color="#CCCCCC", line_width=1, source=source_edges)
+    plot.circle('x', 'y', size=15, fill_color="#28B463", name="nodes",  source=source_nodes)
     plot.renderers.append(labels)
 
     output_file("networkx_graph.html")
@@ -155,6 +157,6 @@ if __name__ == '__main__':
     session = vk.Session()
     vk_api = vk.API(session, timeout=120)
 
-    G, photos, name = friends_graph(identificator, vk_api)
-    plot_graph(G, photos, name)
+    G, photos, friends, name = friends_graph(identificator, vk_api)
+    plot_graph(G, photos, friends, name)
     
