@@ -44,7 +44,7 @@ def get_name_n_photo(idx):
 
 
 def friends_graph(ID, vk_api):
-    
+
     friends = vk_api.friends.get(user_id=ID, v=VK_API_VERSION)['items']
     graph = {}
 
@@ -81,7 +81,7 @@ def friends_graph(ID, vk_api):
     photos = {name:a[1] for name, a in zip(names, names_n_photos)}
     mapping = {node: name for node, name in zip(nodes, names)}
     ids = {name: node for node, name in zip(nodes, names)}
-    
+
     H = nx.relabel_nodes(G, mapping)
 
 
@@ -90,7 +90,7 @@ def friends_graph(ID, vk_api):
 
 
 def plot_graph(G, photos, friends, user_name):
-    
+
     pos = graphviz_layout(G)
     names = pos.keys()
     x,y=zip(*pos.values())
@@ -98,13 +98,14 @@ def plot_graph(G, photos, friends, user_name):
     x_edge = list()
     y_edge = list()
     edges_name = list()
-    for edge in G.edges().keys():
+    print type(G.edges())
+    for edge in G.edges():
         edges_name.append(edge[0].replace('\n', ' ') + '<--->' + edge[1].replace('\n', ' '))
         x_edge.append([pos[edge[0]][0], pos[edge[1]][0]])
         y_edge.append([pos[edge[0]][1], pos[edge[1]][1]])
     img = [photos[name] for name in names]
     frnds = [friends[name] for name in names]
-    
+
     plot = figure(plot_width=1000, plot_height=600, title="Relationship of {}".format(user_name))
     source_nodes = ColumnDataSource(data=dict(x=x, y=y, name=names, img=img, friend=frnds))
     source_edges = ColumnDataSource(data=dict(xs=x_edge, ys=y_edge, name=edges_name))
@@ -143,7 +144,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-id', type=int, help='ID of vk.com user')
-    
+
     identificator = parser.parse_args()._get_kwargs()[0][1]
 
     session = vk.Session()
@@ -151,4 +152,3 @@ if __name__ == '__main__':
 
     G, photos, friends, name = friends_graph(identificator, vk_api)
     plot_graph(G, photos, friends, name)
-    
